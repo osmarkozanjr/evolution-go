@@ -6,7 +6,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chatwoot · evolution-chatwoot-connector</title>
-  <link rel="stylesheet" href="static/style.css?v=0.2.0" />
+  <link rel="stylesheet" href="static/style.css?v=0.3.0" />
 </head>
 <body>
 <div class="layout">
@@ -213,6 +213,46 @@
   </main>
 </div>
 
-<script src="static/app.js?v=0.2.0"></script>
+<!-- Confirmação no primeiro salvamento (criação da configuração). -->
+<dialog id="create-dialog" class="modal" aria-labelledby="create-dialog-title">
+  <form method="dialog" class="modal-body">
+    <h2 id="create-dialog-title">Confirmar criação</h2>
+    <p class="modal-intro">Confira estas opções antes de salvar a configuração desta instância.</p>
+
+    <div class="field field-row">
+      <div class="field-label">
+        <label for="m-enabled">Enabled</label>
+        <span class="field-hint">Habilita a integração com o Chatwoot</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="m-enabled" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="field field-row">
+      <div class="field-label">
+        <label for="m-autoCreate">Auto Create Inbox</label>
+        <span class="field-hint">Cria a caixa de entrada no Chatwoot e adiciona você como agente dela</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="m-autoCreate" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <p class="modal-warning">
+      Se você já tiver uma caixa de entrada para este número, desabilite esta opção antes de
+      confirmar, caso contrário uma nova caixa de entrada será criada.
+    </p>
+
+    <div class="form-actions">
+      <button type="submit" value="confirm" class="btn btn-save">Confirmar e salvar</button>
+      <button type="submit" value="cancel" class="btn btn-secondary">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="static/app.js?v=0.3.0"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/evolution-foundation/evolution-go/pkg/connector/internal/chatwoot"
@@ -64,6 +65,14 @@ func (h *Handler) provision(ctx context.Context, cfg *model.ChatwootConfig, webh
 		inboxID, err = h.Chatwoot.CreateInbox(ctx, cfg, cfg.NameInbox, webhookURL)
 		if err != nil {
 			return fmt.Errorf("create inbox: %w", err)
+		}
+		// Inbox recém-criado não tem membros e não aparece na lateral
+		// "Caixas de entrada": adiciona o dono do token. Falha aqui não
+		// desfaz o provisionamento — dá para adicionar pela tela de
+		// Colaboradores do inbox no Chatwoot.
+		if err := h.Chatwoot.AddTokenOwnerToInbox(ctx, cfg, inboxID); err != nil {
+			slog.Default().Warn("chatwoot connector: não foi possível adicionar o dono do token como membro do inbox",
+				"instance", cfg.InstanceID, "inbox", inboxID, "error", err)
 		}
 	}
 

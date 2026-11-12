@@ -89,12 +89,20 @@ não aparece.
      usuário administrador (Configurações de Perfil → Access Token), não o
      token do inbox;
    - o `accountId` (o número em `/app/accounts/<id>` na URL do Chatwoot).
-4. Inbox **nova**: marque **"Auto Create Inbox"** e o inbox é criado com o
-   webhook já registrado. Inbox **existente**: copie a **Webhook URL** do
-   final da página e cole em Chatwoot → Caixas de Mensagens → sua inbox →
-   Configuração → Webhook URL.
-5. **Salvar.** O conector cria/reaproveita o inbox, registra o webhook e passa
-   a sincronizar a instância.
+4. **Salvar.** No primeiro salvamento abre um popup de confirmação com
+   **Enabled** e **Auto Create Inbox**, ambos ligados por padrão:
+   - **Inbox nova:** deixe o Auto Create ligado. O inbox é criado com o
+     webhook já registrado e o usuário dono do token é adicionado como agente
+     dele, então ele já aparece na lateral "Caixas de entrada".
+   - **Inbox existente para este número:** desligue o Auto Create antes de
+     confirmar; caso contrário uma nova caixa de entrada será criada. O
+     conector procura o inbox pelo nome (campo *Name Inbox*, ou o nome da
+     instância) e só religa o webhook. Se o nome não bater, copie a
+     **Webhook URL** do final da página e cole em Chatwoot → Caixas de
+     Entrada → sua inbox → Configuração → Webhook URL.
+5. Os demais agentes que vão atender são adicionados no Chatwoot, em
+   Configurações → Caixas de Entrada → inbox → **Colaboradores**. Um inbox
+   reaproveitado mantém os membros que já tinha.
 
 ## Migrando da stack com o conector separado
 

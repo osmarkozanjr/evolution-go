@@ -137,6 +137,9 @@ func (f *fakeCw) FindInboxByName(ctx context.Context, cfg *model.ChatwootConfig,
 func (f *fakeCw) CreateInbox(ctx context.Context, cfg *model.ChatwootConfig, name, webhookURL string) (int, error) {
 	return 0, nil
 }
+func (f *fakeCw) AddTokenOwnerToInbox(context.Context, *model.ChatwootConfig, int) error {
+	return nil
+}
 func (f *fakeCw) UpdateInboxWebhook(ctx context.Context, cfg *model.ChatwootConfig, inboxID int, webhookURL string) error {
 	return nil
 }

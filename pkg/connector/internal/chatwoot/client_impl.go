@@ -239,6 +239,33 @@ func (c *HTTPClient) UpdateInboxWebhook(ctx context.Context, cfg *model.Chatwoot
 	return c.doJSON(ctx, cfg, http.MethodPatch, "/inboxes/"+strconv.Itoa(inboxID), reqBody, nil)
 }
 
+// AddTokenOwnerToInbox adiciona o usuário dono do api_access_token como membro
+// do inbox: GET /api/v1/profile (fora do escopo da conta) para descobrir o id
+// do usuário e POST inbox_members {inbox_id, user_ids} (adiciona, não
+// substitui os membros existentes). Um inbox criado via API nasce sem membros
+// e por isso não aparece na lateral "Caixas de entrada" de nenhum agente.
+func (c *HTTPClient) AddTokenOwnerToInbox(ctx context.Context, cfg *model.ChatwootConfig, inboxID int) error {
+	profileURL := strings.TrimRight(cfg.URL, "/") + "/api/v1/profile"
+	body, err := c.do(ctx, cfg, http.MethodGet, profileURL, "", func() io.Reader { return nil })
+	if err != nil {
+		return fmt.Errorf("chatwoot: buscar perfil do token: %w", err)
+	}
+	var profile struct {
+		ID int `json:"id"`
+	}
+	if err := json.Unmarshal(body, &profile); err != nil {
+		return fmt.Errorf("chatwoot: decode profile: %w", err)
+	}
+	if profile.ID == 0 {
+		return errors.New("chatwoot: perfil do token sem id")
+	}
+	reqBody := map[string]any{
+		"inbox_id": inboxID,
+		"user_ids": []int{profile.ID},
+	}
+	return c.doJSON(ctx, cfg, http.MethodPost, "/inbox_members", reqBody, nil)
+}
+
 // --- Contatos ----------------------------------------------------------------
 
 type contactSearchDTO struct {

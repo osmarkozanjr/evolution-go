@@ -15,6 +15,9 @@
   const state = {
     apikey: managerApikey(),
     currentId: null,
+    // true enquanto a instância aberta ainda não tem configuração salva: o
+    // primeiro "Salvar" pede confirmação de Enabled/Auto Create num popup.
+    isNew: true,
     // nomes reais das instâncias do evolutiongo (id -> nome), para exibir e
     // persistir o nome em vez do UUID.
     names: {},
@@ -203,7 +206,8 @@
   function clearForm(instanceId) {
     // Instância nova já vem com Enabled marcado por padrão (é o caso comum:
     // quem abre a config quer habilitar a integração).
-    fillForm({ instanceId: instanceId || "", enabled: true });
+    fillForm({ instanceId: instanceId || "", enabled: true, autoCreate: true });
+    state.isNew = true;
     el("panel-title").textContent = instanceId ? "Chatwoot — " + instanceId : "Chatwoot — nova instância";
   }
 
@@ -245,6 +249,8 @@
     try {
       const cfg = await api("api/chatwoot/" + encodeURIComponent(instanceId));
       cfg.instanceId = instanceId;
+      // Sem config salva a API devolve webhook_url vazia.
+      state.isNew = !cfg.webhook_url;
       fillForm(cfg);
       el("panel-title").textContent = "Chatwoot — " + instanceId;
       highlightActive();
@@ -268,11 +274,39 @@
     loadInstances();
   }
 
+  // Popup do primeiro salvamento: Enabled e Auto Create começam ligados.
+  // Resolve true se confirmado (já aplicando os valores no formulário).
+  function confirmCreation() {
+    const dialog = el("create-dialog");
+    el("m-enabled").checked = true;
+    el("m-autoCreate").checked = true;
+    return new Promise((resolve) => {
+      dialog.addEventListener(
+        "close",
+        () => {
+          const ok = dialog.returnValue === "confirm";
+          if (ok) {
+            el("f-enabled").checked = el("m-enabled").checked;
+            el("f-autoCreate").checked = el("m-autoCreate").checked;
+          }
+          resolve(ok);
+        },
+        { once: true }
+      );
+      dialog.returnValue = "";
+      dialog.showModal();
+    });
+  }
+
   async function saveForm(ev) {
     ev.preventDefault();
     const instanceId = el("f-instanceId").value.trim();
     if (!instanceId) {
       setStatus("Informe o identificador da instância.", "err");
+      return;
+    }
+    if (state.isNew && !(await confirmCreation())) {
+      setStatus("");
       return;
     }
     setStatus("Salvando…");
@@ -283,6 +317,7 @@
         body: JSON.stringify(payload),
       });
       state.currentId = instanceId;
+      state.isNew = false;
       fillForm(Object.assign({ instanceId: instanceId }, cfg));
       setStatus("Salvo com sucesso.", "ok");
       loadInstances();

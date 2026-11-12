@@ -48,6 +48,9 @@ type Client interface {
 	FindInboxByName(ctx context.Context, cfg *model.ChatwootConfig, name string) (inboxID int, err error) // 0 se não existir
 	CreateInbox(ctx context.Context, cfg *model.ChatwootConfig, name, webhookURL string) (inboxID int, err error)
 	UpdateInboxWebhook(ctx context.Context, cfg *model.ChatwootConfig, inboxID int, webhookURL string) error
+	// AddTokenOwnerToInbox adiciona o usuário dono do api_access_token como
+	// membro (agente) do inbox.
+	AddTokenOwnerToInbox(ctx context.Context, cfg *model.ChatwootConfig, inboxID int) error
 
 	// Contatos
 	SearchContact(ctx context.Context, cfg *model.ChatwootConfig, phoneOrIdentifier string) (*Contact, error) // nil,nil se não achou

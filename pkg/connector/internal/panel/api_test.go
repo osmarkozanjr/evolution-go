@@ -125,6 +125,9 @@ type fakeChatwoot struct {
 	failFind     error
 	failCreate   error
 	failWebhook  error
+	failMember   error
+	memberCalls  int
+	memberInbox  int
 
 	updatedWebhook     string
 	lastWebhookInboxID int
@@ -152,6 +155,14 @@ func (f *fakeChatwoot) CreateInbox(_ context.Context, _ *model.ChatwootConfig, _
 	}
 	f.updatedWebhook = webhookURL
 	return f.nextInboxID, nil
+}
+
+func (f *fakeChatwoot) AddTokenOwnerToInbox(_ context.Context, _ *model.ChatwootConfig, inboxID int) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.memberCalls++
+	f.memberInbox = inboxID
+	return f.failMember
 }
 
 func (f *fakeChatwoot) UpdateInboxWebhook(_ context.Context, _ *model.ChatwootConfig, inboxID int, webhookURL string) error {
@@ -326,6 +337,9 @@ func TestSetChatwoot_UsaInboxExistenteSemCriar(t *testing.T) {
 	if cw.createCalls != 0 {
 		t.Fatalf("não deveria criar inbox quando já existe, mas criou %d vez(es)", cw.createCalls)
 	}
+	if cw.memberCalls != 0 {
+		t.Fatalf("inbox reaproveitado não deveria ter membros alterados, mas houve %d chamada(s)", cw.memberCalls)
+	}
 	var resp findResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("json inválido: %v", err)
@@ -391,6 +405,9 @@ func TestSetChatwoot_AutoCreateCriaInbox(t *testing.T) {
 	if cw.createCalls != 1 {
 		t.Fatalf("esperado 1 chamada a CreateInbox, obtido %d", cw.createCalls)
 	}
+	if cw.memberCalls != 1 || cw.memberInbox != 42 {
+		t.Fatalf("esperado dono do token adicionado ao inbox 42, obtido calls=%d inbox=%d", cw.memberCalls, cw.memberInbox)
+	}
 	var resp findResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("json inválido: %v", err)
@@ -410,6 +427,35 @@ func TestSetChatwoot_AutoCreateCriaInbox(t *testing.T) {
 	}
 	if len(list) != 1 || list[0].InstanceID != "inst-1" {
 		t.Fatalf("esperado 1 instância listada = inst-1, obtido %+v", list)
+	}
+}
+
+// falha ao adicionar o membro não desfaz o provisionamento: inbox criado,
+// webhook registrado e 201 para o painel.
+func TestSetChatwoot_FalhaAoAdicionarMembroNaoQuebra(t *testing.T) {
+	h, st, cw := newTestHandler()
+	cw.failMember = errors.New("403 forbidden")
+	r := newRouter(h)
+
+	body := setRequest{
+		Enabled:    true,
+		URL:        "https://chatwoot.exemplo.com",
+		AccountID:  "1",
+		Token:      "tok-123",
+		SignMsg:    boolPtr(true),
+		NameInbox:  "Suporte",
+		AutoCreate: true,
+	}
+
+	w := doRequest(t, r, http.MethodPost, "/api/chatwoot/inst-1", "test-apikey", body)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("esperado 201 mesmo com falha no membro, obtido %d: %s", w.Code, w.Body.String())
+	}
+	if cw.memberCalls != 1 || cw.webhookCalls != 1 {
+		t.Fatalf("esperado 1 tentativa de membro e 1 webhook, obtido member=%d webhook=%d", cw.memberCalls, cw.webhookCalls)
+	}
+	if saved, _ := st.GetConfig(context.Background(), "inst-1"); saved == nil || saved.InboxID != 42 {
+		t.Fatalf("esperado InboxID=42 persistido, obtido %+v", saved)
 	}
 }
 

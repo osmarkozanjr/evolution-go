@@ -1,5 +1,19 @@
 # Evolution GO - Changelog
 
+## v0.7.5 (fork osmarkozanjr/evolution-go)
+
+**Docker:** `osmarkozanjr/evolution_go:0.7.5`
+
+### 🆕 New Features
+- **Chatwoot connector — inbox membership:** an inbox created by the connector
+  now gets the access-token owner added as an agent, so it shows up under
+  "Caixas de entrada" right away (inboxes created via API start with no
+  members). A failure here is logged and does not undo the provisioning.
+- **Chatwoot connector — creation popup:** the first save of an instance opens
+  a confirmation popup with **Enabled** and **Auto Create Inbox** (both on by
+  default) and a warning to turn Auto Create off when an inbox for the number
+  already exists.
+
 ## v0.7.4 (fork osmarkozanjr/evolution-go)
 
 **Docker:** `osmarkozanjr/evolution_go:0.7.4`
