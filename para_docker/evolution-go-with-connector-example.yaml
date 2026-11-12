@@ -1,9 +1,12 @@
-# ANTES DE SUBIR A STACK CRIE OS BANCOS NO POSTGRES:
-# psql -U postgres -c "CREATE DATABASE evogo_auth;"
-# psql -U postgres -c "CREATE DATABASE evogo_users;"
-#
-# CRIE TAMBÉM O VOLUME EXTERNO DO RABBITMQ:
+# ANTES DE SUBIR A STACK CRIE OS VOLUMES EXTERNOS (se ainda não existirem):
+# docker volume create evolution_go_data
+# docker volume create evolution_go_logs
 # docker volume create rabbitmq_data
+#
+# Os bancos evogo_auth e evogo_users NÃO precisam ser criados à mão: o
+# evolution-go cria os que faltarem no start (o usuário do Postgres precisa
+# ter permissão de CREATE DATABASE, como o postgres). As tabelas do conector
+# Chatwoot também são criadas automaticamente, dentro de evogo_users.
 #
 # Stack do evolution-go (este fork) com o conector Chatwoot EMBUTIDO: o
 # conector roda sempre dentro do próprio evolution_go e é servido em https://SEU-DOMINIO/connector — sem container, imagem, configs

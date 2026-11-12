@@ -120,10 +120,13 @@ A pasta [`para_docker/`](para_docker/) tem a stack Docker Swarm (Traefik) com
 `evolution-go-with-connector.yaml` (ignorado pelo git) e preencha imagem,
 domínio, senhas e tokens.
 
+Os bancos (`evogo_auth`, `evogo_users`) e as tabelas do conector são criados
+automaticamente no start; só os volumes externos precisam existir:
+
 ```bash
-# 1. bancos e volume
-psql -U postgres -c "CREATE DATABASE evogo_auth;"
-psql -U postgres -c "CREATE DATABASE evogo_users;"
+# 1. volumes
+docker volume create evolution_go_data
+docker volume create evolution_go_logs
 docker volume create rabbitmq_data
 
 # 2. deploy
