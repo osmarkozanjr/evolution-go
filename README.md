@@ -105,8 +105,8 @@ Documentação completa, configuração do painel e migração da stack antiga
 Uma imagem só tem a correção do 405 e o conector:
 
 ```bash
-docker build --build-arg VERSION=0.7.3 -t osmarkozanjr/evolution_go:0.7.3 .
-docker push osmarkozanjr/evolution_go:0.7.3
+docker build --build-arg VERSION=0.7.4 -t osmarkozanjr/evolution_go:0.7.4 .
+docker push osmarkozanjr/evolution_go:0.7.4   # opcional, ver abaixo
 ```
 
 O `--build-arg VERSION` define a versão que o evolution-go reporta (log de
@@ -142,6 +142,31 @@ docker stack deploy -c para_docker/evolution-go-with-connector.yaml evolution
 
 **Acesso:** a raiz do domínio redireciona para o manager (`/manager`); o
 painel do conector fica em `/connector/`.
+
+### Atualizando
+
+A cada atualização do fork, gere a imagem com uma **tag nova** (a versão em
+[`VERSION`](VERSION)) e aponte a stack para ela:
+
+```bash
+# na pasta do fork no servidor
+git pull
+cat VERSION                                   # ex.: 0.7.4
+docker build --build-arg VERSION=0.7.4 -t osmarkozanjr/evolution_go:0.7.4 .
+
+# no seu evolution-go-with-connector.yaml, troque a tag:
+#   image: osmarkozanjr/evolution_go:0.7.4
+docker stack deploy -c para_docker/evolution-go-with-connector.yaml evolution
+```
+
+- **Sempre tag nova:** se reaproveitar a mesma tag, o Swarm pode não perceber
+  que a imagem mudou e manter o container antigo.
+- **Confira:** o log de start mostra `Starting Evolution GO version 0.7.4`.
+- **Voltar atrás:** a imagem anterior continua no servidor; recoloque a tag
+  antiga no yml e rode o `docker stack deploy` de novo.
+- **Limpeza:** imagens antigas podem ser removidas com
+  `docker image rm osmarkozanjr/evolution_go:<tag-antiga>` quando a nova
+  estiver estável.
 
 ---
 

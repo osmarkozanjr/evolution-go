@@ -29,7 +29,7 @@
 version: '3.8'
 services:
   evolution_go:
-    image: osmarkozanjr/evolution_go:0.7.3
+    image: osmarkozanjr/evolution_go:0.7.4
     networks:
       - minha_rede
 

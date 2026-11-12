@@ -1,5 +1,20 @@
 # Evolution GO - Changelog
 
+## v0.7.4 (fork osmarkozanjr/evolution-go)
+
+**Docker:** `osmarkozanjr/evolution_go:0.7.4`
+
+### 🆕 New Features
+- **Root redirect** — `GET /` now redirects to `/manager` (also before the
+  license is activated).
+
+### 📝 Docs
+- `para_docker`: databases are created automatically on start; all external
+  volumes listed.
+- Proxy note: with `PROXY_*` set the QR code may not be generated; the global
+  proxy becomes the default of every new instance and stays saved on it.
+- README: "Atualizando" section (new image tag per release, rollback).
+
 ## v0.7.3 (fork osmarkozanjr/evolution-go)
 
 **Docker:** `osmarkozanjr/evolution_go:0.7.3`
