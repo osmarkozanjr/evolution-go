@@ -28,6 +28,7 @@ import (
 	community_handler "github.com/evolution-foundation/evolution-go/pkg/community/handler"
 	community_service "github.com/evolution-foundation/evolution-go/pkg/community/service"
 	config "github.com/evolution-foundation/evolution-go/pkg/config"
+	chatwoot_connector "github.com/evolution-foundation/evolution-go/pkg/connector"
 	"github.com/evolution-foundation/evolution-go/pkg/core"
 	producer_interfaces "github.com/evolution-foundation/evolution-go/pkg/events/interfaces"
 	nats_producer "github.com/evolution-foundation/evolution-go/pkg/events/nats"
@@ -407,6 +408,21 @@ func main() {
 
 	r := setupRouter(db, authDB, sqliteDB, cfg, conn, exPath, runtimeCtx)
 
+	// Conector Chatwoot embutido (sempre ativo): painel, API e webhook em
+	// /connector; consome as filas globais do RabbitMQ.
+	connector, err := chatwoot_connector.Start(context.Background(), r, chatwoot_connector.Options{
+		ServerPort:   os.Getenv("SERVER_PORT"),
+		GlobalAPIKey: cfg.GlobalApiKey,
+		AMQPURL:      cfg.AmqpUrl,
+		PostgresDSN:  cfg.UsersDBDSN(),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !cfg.AmqpGlobalEnabled {
+		logger.LogWarn("Chatwoot connector: AMQP_GLOBAL_ENABLED != true, nenhum evento do WhatsApp chegará ao Chatwoot")
+	}
+
 	// Graceful shutdown with heartbeat
 	heartbeatCtx, heartbeatCancel := context.WithCancel(context.Background())
 	defer heartbeatCancel()
@@ -442,6 +458,8 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.LogError("[SHUTDOWN] Server forced to shutdown: %v", err)
 	}
+
+	connector.Close()
 
 	logger.LogInfo("[SHUTDOWN] Server exited")
 }

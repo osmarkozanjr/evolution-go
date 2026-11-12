@@ -141,14 +141,19 @@ func extractDBNameAndAdminDSN(dsn string) (string, string, error) {
 	return dbName, strings.Join(adminParts, " "), nil
 }
 
+// UsersDBDSN retorna o DSN do banco principal do evolution-go
+// (POSTGRES_USERS_DB ou, na falta dele, POSTGRES_HOST/PORT/USER/PASSWORD/DB).
+func (c *Config) UsersDBDSN() string {
+	if c.postgresUsersDB != "" {
+		return c.postgresUsersDB
+	}
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", c.PostgresHost, c.PostgresPort, c.PostgresUser, c.PostgresPassword, c.PostgresDB)
+}
+
 func (c *Config) CreateUsersDB() (*gorm.DB, error) {
 	logger.LogDebug("Connecting to database on: %s", c.postgresUsersDB)
 
-	dbDSN := c.postgresUsersDB
-
-	if c.postgresUsersDB == "" {
-		dbDSN = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", c.PostgresHost, c.PostgresPort, c.PostgresUser, c.PostgresPassword, c.PostgresDB)
-	}
+	dbDSN := c.UsersDBDSN()
 
 	if err := ensureDBExists(dbDSN); err != nil {
 		logger.LogWarn("[CONFIG] Auto-setup failed (will try connecting anyway): %v", err)
@@ -178,11 +183,7 @@ func (c *Config) CreateUsersDB() (*gorm.DB, error) {
 }
 
 func (c *Config) CreateAuthDB() (*sql.DB, error) {
-	dbDSN := c.postgresUsersDB
-
-	if c.postgresUsersDB == "" {
-		dbDSN = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", c.PostgresHost, c.PostgresPort, c.PostgresUser, c.PostgresPassword, c.PostgresDB)
-	}
+	dbDSN := c.UsersDBDSN()
 
 	if err := ensureDBExists(dbDSN); err != nil {
 		logger.LogWarn("[CONFIG] Auto-setup failed (will try connecting anyway): %v", err)

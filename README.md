@@ -28,6 +28,105 @@
 
 ---
 
+## Por que este fork existe
+
+Este é um fork do [evolution-foundation/evolution-go](https://github.com/evolution-foundation/evolution-go)
+que resolve dois problemas do projeto original:
+
+1. **Atualização da versão do WhatsApp Web** — instâncias caindo com `Client outdated (405)`.
+2. **Integração com o Chatwoot** — o evolution-go não tem conector nativo; aqui ele vem embutido no próprio binário ([`pkg/connector/`](pkg/connector/)).
+
+### 1. Erro 405 "Client outdated" e atualização automática da versão do WhatsApp Web
+
+**Problema.** O WhatsApp recusa conexões de clientes cuja versão considera
+desatualizada. Em 2026-11-02 a versão embutida no whatsmeow usado pela v0.7.2
+(`2.3000.1042386815`) passou a ser rejeitada e **todas as instâncias deixaram de
+reconectar** com `Client outdated (405) connect failure`.
+
+O evolution-go já tentava evitar isso: no `StartClient` ele busca a versão atual
+em `https://web.whatsapp.com/sw.js` (`fetchWhatsAppWebVersion`, cache de 1h).
+Mas a versão buscada só era gravada em `store.DeviceProps.Version` — e o
+handshake do whatsmeow usa a versão global definida por `store.SetWAVersion`.
+Ou seja, **a busca automática acontecia, mas era ignorada**, e o cliente sempre
+se apresentava com a versão fixa do whatsmeow.
+
+**Correção** (combinação das PRs upstream
+[#226](https://github.com/evolution-foundation/evolution-go/pull/226) e
+[#227](https://github.com/evolution-foundation/evolution-go/pull/227)):
+
+- **#226** — atualiza o whatsmeow para `v0.0.0-20261102152715-54038813c47f`
+  (versão base `2.3000.1052556849`), Go 1.26 no `go.mod` e no `Dockerfile`, e
+  adapta `pkg/user/service` às mudanças de API (`UpdateBlocklist`,
+  `GetBlocklist`, `SetStatusMessage`). É a rede de segurança: se a busca no
+  WhatsApp Web falhar, o cliente cai numa versão base recente.
+- **#227** — aplica a versão obtida do WhatsApp Web com `store.SetWAVersion`
+  em `pkg/whatsmeow/service/whatsmeow.go`. Assim, quando o WhatsApp sobe a
+  versão mínima, as instâncias passam a usar a versão nova **sem precisar de
+  rebuild nem de atualizar o whatsmeow**.
+
+**Como se comporta:**
+
+- Se `WHATSAPP_VERSION_MAJOR`/`MINOR`/`PATCH` estiverem definidas, elas têm
+  prioridade e a versão fica fixa. **Deixe-as vazias para usar a atualização
+  automática.**
+- A versão é buscada/aplicada a cada `StartClient` (conectar/reconectar uma
+  instância pela API ou no startup), respeitando o cache de 1h. Como
+  `SetWAVersion` é global no processo, a última instância iniciada define a
+  versão usada por todas.
+- No log aparece `Setting whatsapp version from web to 2.3000.X` seguido de
+  `Applied whatsmeow store.SetWAVersion to 2.3000.X`.
+
+### 2. Conector Chatwoot embutido (`pkg/connector/`)
+
+O evolution-go não tem integração nativa com o Chatwoot. Neste fork o
+**evolution-chatwoot-connector** faz parte do próprio evolution-go: mesmo
+binário, mesma imagem, mesma porta, sempre ativo.
+
+- **WhatsApp → Chatwoot:** consome as filas globais do RabbitMQ que o próprio
+  evolution-go publica (`AMQP_GLOBAL_ENABLED=true`) e cria
+  contatos/conversas/mensagens no Chatwoot. A fila garante que nenhuma
+  mensagem se perde se o Chatwoot cair ou o container reiniciar.
+- **Chatwoot → WhatsApp:** recebe o webhook do inbox em
+  `/connector/chatwoot/webhook/{instanceId}` e envia pela API `/send/*`
+  (inclusive revogando no WhatsApp a mensagem excluída no Chatwoot).
+- **Painel:** em `/connector/`, com um item **"Chatwoot"** nativo no manager
+  (`manager/dist/assets/connector-menu.js`).
+
+Não há variáveis novas: o painel usa o login do próprio manager e o conector
+usa o mesmo banco Postgres, `AMQP_URL` e `GLOBAL_API_KEY` do evolution-go
+(suas tabelas são criadas no banco do evolution-go no start). O `AMQP_URL`
+passa a ser obrigatório, com `AMQP_GLOBAL_ENABLED=true`.
+
+Documentação completa, configuração do painel e migração da stack antiga
+(conector como service separado): [`pkg/connector/README.md`](pkg/connector/README.md).
+
+### Build e deploy (`para_docker/`)
+
+Uma imagem só tem a correção do 405 e o conector:
+
+```bash
+docker build -t SEU-USUARIO/evolution-go:0.7.2-fix405 .
+docker push SEU-USUARIO/evolution-go:0.7.2-fix405   # opcional
+```
+
+A pasta [`para_docker/`](para_docker/) tem a stack Docker Swarm (Traefik) com
+**evolution-go + RabbitMQ**:
+`evolution-go-with-connector-example.yaml`. Copie para
+`evolution-go-with-connector.yaml` (ignorado pelo git) e preencha imagem,
+domínio, senhas e tokens.
+
+```bash
+# 1. bancos e volume
+psql -U postgres -c "CREATE DATABASE evogo_auth;"
+psql -U postgres -c "CREATE DATABASE evogo_users;"
+docker volume create rabbitmq_data
+
+# 2. deploy
+docker stack deploy -c para_docker/evolution-go-with-connector.yaml evolution
+```
+
+---
+
 ## About
 
 **Evolution Go** is a high-performance WhatsApp API built in Go. Part of the Evolution Foundation ecosystem, it provides a robust, lightweight solution for WhatsApp integration using the [whatsmeow](https://github.com/tulir/whatsmeow) library.

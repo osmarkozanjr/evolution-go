@@ -1,0 +1,156 @@
+# ANTES DE SUBIR A STACK CRIE OS BANCOS NO POSTGRES:
+# psql -U postgres -c "CREATE DATABASE evogo_auth;"
+# psql -U postgres -c "CREATE DATABASE evogo_users;"
+#
+# CRIE TAMBÉM O VOLUME EXTERNO DO RABBITMQ:
+# docker volume create rabbitmq_data
+#
+# Stack do evolution-go (este fork) com o conector Chatwoot EMBUTIDO: o
+# conector roda sempre dentro do próprio evolution_go e é servido em https://SEU-DOMINIO/connector — sem container, imagem, configs
+# ou rotas Traefik extras. O RabbitMQ é o transporte dos eventos WhatsApp ->
+# Chatwoot, para que nenhuma mensagem se perca se o Chatwoot cair ou o
+# container reiniciar.
+#
+# IMAGEM: a imagem oficial (evoapicloud/evolution-go) não tem o conector nem a
+# correção do erro 405. Builde a imagem deste fork (ver README da raiz) e use
+# a sua tag no `image:` abaixo.
+#
+# Troque os placeholders abaixo antes do deploy:
+#   SEU-USUARIO/evolution-go:TAG -> imagem buildada deste fork
+#   evolutiongo.exemplo.com      -> seu domínio
+#   SEU-TOKEN-AQUI               -> GLOBAL_API_KEY do evolution-go
+#   SENHAAQUI                    -> senha do Postgres
+#   SENHA-RABBITMQ-AQUI          -> senha do usuário admin do RabbitMQ
+#
+# Salve sua cópia com as senhas reais como evolution-go-with-connector.yaml
+# (ignorado pelo git nesta pasta).
+
+version: '3.8'
+services:
+  evolution_go:
+    image: SEU-USUARIO/evolution-go:TAG
+    networks:
+      - minha_rede
+
+    environment:
+      SERVER_PORT: 4000
+      CLIENT_NAME: "evolution"
+      GLOBAL_API_KEY: "SEU-TOKEN-AQUI"
+      POSTGRES_AUTH_DB: "postgresql://postgres:SENHAAQUI@postgres:5432/evogo_auth?sslmode=disable"
+      POSTGRES_USERS_DB: "postgresql://postgres:SENHAAQUI@postgres:5432/evogo_users?sslmode=disable"
+      DATABASE_SAVE_MESSAGES: "false"
+      REDIS_URL: "redis://redis:6379/3"
+      WADEBUG: "INFO"
+      LOGTYPE: "console"
+      LOG_DIRECTORY: "/app/logs"
+      LOG_MAX_SIZE: "100"
+      LOG_MAX_BACKUPS: "5"
+      LOG_MAX_AGE: "30"
+      LOG_COMPRESS: "true"
+      CONNECT_ON_STARTUP: "true"
+      WEBHOOKFILES: "true"
+      OS_NAME: "Linux"
+      # Versão do WhatsApp Web: deixe vazias para o evolution-go buscar e
+      # aplicar a versão atual automaticamente (evita o erro 405).
+      # WHATSAPP_VERSION_MAJOR: ""
+      # WHATSAPP_VERSION_MINOR: ""
+      # WHATSAPP_VERSION_PATCH: ""
+      API_AUDIO_CONVERTER: ""
+      API_AUDIO_CONVERTER_KEY: ""
+      PROXY_HOST: ""
+      # proxy é opcional. Contrate free em webshare.io
+      PROXY_PORT: ""
+      PROXY_USERNAME: ""
+      PROXY_PASSWORD: ""
+      # AMQP: o conector consome as filas globais abaixo.
+      AMQP_URL: "amqp://admin:SENHA-RABBITMQ-AQUI@rabbitmq:5672/"
+      AMQP_GLOBAL_ENABLED: "true"
+      AMQP_GLOBAL_EVENTS: "MESSAGE,SEND_MESSAGE,CONNECTION,QRCODE,CONTACT,HISTORY_SYNC"
+      NATS_URL: ""
+      NATS_GLOBAL_ENABLED: "false"
+      EVENT_IGNORE_GROUP: "false"
+      EVENT_IGNORE_STATUS: "true"
+      MINIO_ENABLED: "false"
+      MINIO_ENDPOINT: ""
+      MINIO_ACCESS_KEY: ""
+      MINIO_SECRET_KEY: ""
+      MINIO_BUCKET: ""
+      MINIO_USE_SSL: "false"
+    volumes:
+      - evolution_go_data:/app/dbdata
+      - evolution_go_logs:/app/logs
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.evolution_go.rule=Host(`evolutiongo.exemplo.com`)
+        - traefik.http.routers.evolution_go.entrypoints=websecure
+        - traefik.http.routers.evolution_go.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.evolution_go.service=evolution_go
+        - traefik.http.services.evolution_go.loadbalancer.server.port=4000
+        - traefik.http.services.evolution_go.loadbalancer.passHostHeader=true
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    # Hostname fixo: o RabbitMQ guarda os dados em mnesia/rabbit@<hostname>, e no
+    # Swarm cada task nova ganha hostname aleatório — sem isto, todo restart do
+    # service sobe um nó vazio e as mensagens em fila se perdem (o volume guarda
+    # os dados do nó antigo, mas ninguém os lê).
+    hostname: rabbitmq
+    networks:
+      - minha_rede
+    environment:
+      RABBITMQ_DEFAULT_USER: "admin"
+      RABBITMQ_DEFAULT_PASS: "SENHA-RABBITMQ-AQUI"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - traefik.enable=false
+        # Management UI (http://rabbitmq:15672) NÃO é exposta publicamente por
+        # padrão. Para expor via Traefik em um subdomínio protegido, descomente
+        # e ajuste as linhas abaixo (troque traefik.enable=false acima por true):
+        # - traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.exemplo.com`)
+        # - traefik.http.routers.rabbitmq.entrypoints=websecure
+        # - traefik.http.routers.rabbitmq.tls.certresolver=letsencryptresolver
+        # - traefik.http.routers.rabbitmq.service=rabbitmq
+        # - traefik.http.services.rabbitmq.loadbalancer.server.port=15672
+
+
+volumes:
+  evolution_go_data:
+    external: true
+    name: evolution_go_data
+  evolution_go_logs:
+    external: true
+    name: evolution_go_logs
+  rabbitmq_data:
+    external: true
+    name: rabbitmq_data
+
+
+networks:
+  minha_rede:
+    external: true
+    name: minha_rede
