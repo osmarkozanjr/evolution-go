@@ -58,8 +58,12 @@ services:
       # WHATSAPP_VERSION_PATCH: ""
       API_AUDIO_CONVERTER: ""
       API_AUDIO_CONVERTER_KEY: ""
+      # PROXY (opcional; ex.: webshare.io). ATENÇÃO: com proxy configurado o
+      # QR code pode não ser gerado. Deixe vazio para parear as instâncias.
+      # Preenchido, vira o proxy padrão de toda instância NOVA e fica salvo
+      # nela: esvaziar estas variáveis depois não remove o proxy das
+      # instâncias já criadas (use DELETE /instance/proxy/{instanceId}).
       PROXY_HOST: ""
-      # proxy é opcional. Contrate free em webshare.io
       PROXY_PORT: ""
       PROXY_USERNAME: ""
       PROXY_PASSWORD: ""

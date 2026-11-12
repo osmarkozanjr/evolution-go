@@ -217,6 +217,12 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 		c.Next()
 	})
 
+	// Raiz do domínio -> manager. Registrada antes do gate de licença para
+	// funcionar também sem licença ativada (o /manager já é liberado no gate).
+	r.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusFound, "/manager")
+	})
+
 	r.Use(core.GateMiddleware(runtimeCtx))
 
 	// License routes (always accessible, even without license)

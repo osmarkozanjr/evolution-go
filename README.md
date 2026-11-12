@@ -133,6 +133,16 @@ docker volume create rabbitmq_data
 docker stack deploy -c para_docker/evolution-go-with-connector.yaml evolution
 ```
 
+> **Proxy e QR code:** com `PROXY_HOST`/`PORT`/`USERNAME`/`PASSWORD`
+> preenchidos (ex.: plano gratuito do webshare.io), o QR code pode não ser
+> gerado. Deixe as variáveis `PROXY_*` vazias para parear as instâncias. Quando
+> preenchidas, elas viram o proxy padrão de toda instância **nova** e ficam
+> salvas na instância — esvaziar as variáveis depois não remove o proxy das
+> instâncias já criadas; para isso use `DELETE /instance/proxy/{instanceId}`.
+
+**Acesso:** a raiz do domínio redireciona para o manager (`/manager`); o
+painel do conector fica em `/connector/`.
+
 ---
 
 ## About
