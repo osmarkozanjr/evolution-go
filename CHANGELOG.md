@@ -1,5 +1,26 @@
 # Evolution GO - Changelog
 
+## v0.7.3 (fork osmarkozanjr/evolution-go)
+
+**Docker:** `osmarkozanjr/evolution_go:0.7.3`
+
+### 🐛 Fixes
+- **`Client outdated (405)`** — whatsmeow bumped to
+  `v0.0.0-20261102152715-54038813c47f` (Go 1.26) and the WhatsApp Web version
+  fetched from `web.whatsapp.com/sw.js` is now actually applied with
+  `store.SetWAVersion`, so new minimum versions are picked up without a rebuild
+  (upstream PRs #226 and #227). `WHATSAPP_VERSION_*` still overrides it.
+
+### 🆕 New Features
+- **Embedded Chatwoot connector** (`pkg/connector`) — always on, served at
+  `/connector` with a native "Chatwoot" entry in the manager. Consumes the global
+  RabbitMQ queues (WhatsApp → Chatwoot) and receives inbox webhooks (Chatwoot →
+  WhatsApp). Uses the manager login, `AMQP_URL` and the evolution-go Postgres
+  database; no extra environment variables.
+
+### ⚠️ Breaking
+- `AMQP_URL` is now required (the connector consumes from RabbitMQ).
+
 ## v0.7.2
 
 **Docker:** `evoapicloud/evolution-go:0.7.2`

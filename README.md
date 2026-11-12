@@ -105,9 +105,14 @@ Documentação completa, configuração do painel e migração da stack antiga
 Uma imagem só tem a correção do 405 e o conector:
 
 ```bash
-docker build -t SEU-USUARIO/evolution-go:0.7.2-fix405 .
-docker push SEU-USUARIO/evolution-go:0.7.2-fix405   # opcional
+docker build --build-arg VERSION=0.7.3 -t osmarkozanjr/evolution_go:0.7.3 .
+docker push osmarkozanjr/evolution_go:0.7.3
 ```
+
+O `--build-arg VERSION` define a versão que o evolution-go reporta (log de
+start e heartbeat de licença); sem ele a imagem sai como `dev`. O `docker
+push` só é necessário se a imagem for rodar em outra máquina ou num Swarm
+com vários nós — buildando no próprio nó manager, a imagem local basta.
 
 A pasta [`para_docker/`](para_docker/) tem a stack Docker Swarm (Traefik) com
 **evolution-go + RabbitMQ**:

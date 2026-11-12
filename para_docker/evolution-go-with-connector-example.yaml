@@ -12,11 +12,9 @@
 # container reiniciar.
 #
 # IMAGEM: a imagem oficial (evoapicloud/evolution-go) não tem o conector nem a
-# correção do erro 405. Builde a imagem deste fork (ver README da raiz) e use
-# a sua tag no `image:` abaixo.
+# correção do erro 405. Use a imagem deste fork (build no README da raiz).
 #
 # Troque os placeholders abaixo antes do deploy:
-#   SEU-USUARIO/evolution-go:TAG -> imagem buildada deste fork
 #   evolutiongo.exemplo.com      -> seu domínio
 #   SEU-TOKEN-AQUI               -> GLOBAL_API_KEY do evolution-go
 #   SENHAAQUI                    -> senha do Postgres
@@ -28,7 +26,7 @@
 version: '3.8'
 services:
   evolution_go:
-    image: SEU-USUARIO/evolution-go:TAG
+    image: osmarkozanjr/evolution_go:0.7.3
     networks:
       - minha_rede
 
