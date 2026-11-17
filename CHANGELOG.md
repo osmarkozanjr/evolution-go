@@ -1,5 +1,18 @@
 # Evolution GO - Changelog
 
+## v0.7.6 (fork osmarkozanjr/evolution-go)
+
+**Docker:** `osmarkozanjr/evolution_go:0.7.6`
+
+### 🐛 Bug Fixes
+- **Chatwoot connector — deleted/merged contact:** when a contact was deleted
+  or merged in Chatwoot, the connector kept the old `contact_id` in
+  `contact_mappings`; `GET /contacts/:id/conversations` returned 404 and every
+  message from that chat (e.g. a group) was dropped after exhausting the
+  RabbitMQ retries. On 404 the connector now invalidates the contact mapping,
+  resolves the contact again (find by identifier or create) and retries, as it
+  already did for deleted conversations.
+
 ## v0.7.5 (fork osmarkozanjr/evolution-go)
 
 **Docker:** `osmarkozanjr/evolution_go:0.7.5`

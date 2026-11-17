@@ -108,17 +108,17 @@ Uma imagem só tem a correção do 405 e o conector. Gere sempre com a versão d
 ```bash
 # na pasta do fork
 git pull
-cat VERSION                                   # ex.: 0.7.5
-docker build --build-arg VERSION=0.7.5 -t osmarkozanjr/evolution_go:0.7.5 .
+cat VERSION                                   # ex.: 0.7.6
+docker build --build-arg VERSION=0.7.6 -t osmarkozanjr/evolution_go:0.7.6 .
 ```
 
 - **`--build-arg VERSION`** define a versão que o evolution-go reporta (log de
   start e heartbeat de licença); sem ele a imagem sai como `dev`. Confira no
-  log: `Starting Evolution GO version 0.7.5`.
+  log: `Starting Evolution GO version 0.7.6`.
 - **Sempre tag nova** a cada build: se reaproveitar a mesma tag, o Swarm pode
   não perceber que a imagem mudou e manter o container antigo.
 - **Imagem local:** buildando no próprio nó manager do Swarm, não precisa de
-  registry. `docker push osmarkozanjr/evolution_go:0.7.5` só é necessário se
+  registry. `docker push osmarkozanjr/evolution_go:0.7.6` só é necessário se
   a imagem for rodar em outra máquina ou num Swarm com vários nós.
 - **Voltar atrás:** a imagem anterior continua no servidor; recoloque a tag
   antiga no yml e rode o `docker stack deploy` de novo.
